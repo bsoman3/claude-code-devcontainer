@@ -31,6 +31,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
   ipset \
   iptables \
   iproute2 \
+  # Java runtime (required by Ghidra headless / pyghidra)
+  openjdk-25-jre-headless \
   && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Install git-delta
@@ -64,6 +66,7 @@ ENV DEVCONTAINER=true
 ENV SHELL=/bin/zsh
 ENV EDITOR=nano
 ENV VISUAL=nano
+ENV GHIDRA_INSTALL_DIR=/opt/ghidra
 
 WORKDIR /workspace
 
@@ -77,13 +80,27 @@ ENV PATH="/home/vscode/.local/bin:$PATH"
 RUN curl -fsSL https://claude.ai/install.sh | bash && \
   claude plugin marketplace add anthropics/skills && \
   claude plugin marketplace add trailofbits/skills && \
-  claude plugin marketplace add trailofbits/skills-curated
+  claude plugin marketplace add trailofbits/skills-curated && \
+  claude plugin marketplace add bsoman3/go-malware-re-skills
 
 # Install Python 3.13 via uv (fast binary download, not source compilation)
 RUN uv python install 3.13 --default
 
 # Install ast-grep (AST-based code search)
 RUN uv tool install ast-grep-cli
+
+# Install Ghidra 12 headless
+# Update GHIDRA_URL and GHIDRA_DIR when upgrading. Find releases at:
+# https://github.com/NationalSecurityAgency/ghidra/releases
+ARG GHIDRA_URL=https://github.com/NationalSecurityAgency/ghidra/releases/download/Ghidra_12.0.3_build/ghidra_12.0.3_PUBLIC_20260210.zip
+ARG GHIDRA_DIR=ghidra_12.0.3_PUBLIC
+RUN curl -fsSL "${GHIDRA_URL}" -o /tmp/ghidra.zip && \
+  unzip -q /tmp/ghidra.zip -d /opt && \
+  mv "/opt/${GHIDRA_DIR}" /opt/ghidra && \
+  rm /tmp/ghidra.zip
+
+# Install ghidra-mcp-lite MCP server
+RUN uv tool install "git+https://github.com/bsoman3/ghidra-mcp-lite"
 
 # Install fnm (Fast Node Manager) and Node 22
 ARG NODE_VERSION=22

@@ -33,8 +33,26 @@ def setup_claude_settings():
         settings["permissions"] = {}
     settings["permissions"]["defaultMode"] = "bypassPermissions"
 
+    # Configure ghidra-mcp-lite MCP server
+    if "mcpServers" not in settings:
+        settings["mcpServers"] = {}
+    if "ghidra" not in settings["mcpServers"]:
+        ghidra_projects = str(Path.home() / "ghidra-projects")
+        settings["mcpServers"]["ghidra"] = {
+            "type": "stdio",
+            "command": "ghidra-mcp",
+            "args": ["--project-dir", ghidra_projects],
+        }
+
     settings_file.write_text(json.dumps(settings, indent=2) + "\n", encoding="utf-8")
     print(f"[post_install] Claude settings configured: {settings_file}", file=sys.stderr)
+
+
+def setup_ghidra_projects():
+    """Create the default Ghidra projects directory."""
+    projects_dir = Path.home() / "ghidra-projects"
+    projects_dir.mkdir(parents=True, exist_ok=True)
+    print(f"[post_install] Ghidra projects directory: {projects_dir}", file=sys.stderr)
 
 
 def setup_tmux_config():
@@ -209,6 +227,7 @@ def main():
     print("[post_install] Starting post-install configuration...", file=sys.stderr)
 
     setup_claude_settings()
+    setup_ghidra_projects()
     setup_tmux_config()
     fix_directory_ownership()
     setup_global_gitignore()
